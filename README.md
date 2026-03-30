@@ -1,104 +1,199 @@
-# Flask App — AWS ECS Deployment
+# 🚀 Flask App Deployment on GCP VM (Dockerized)
 
-A minimal Flask web application built for learning containerization and deployment to **AWS ECS (Elastic Container Service)**.
+This project demonstrates how to **containerize a Flask application** and deploy it manually on a **GCP Ubuntu VM using Docker**.
 
-![Python](https://img.shields.io/badge/Python-3.14-blue)
-![Flask](https://img.shields.io/badge/Flask-3.1.1-green)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED)
-![AWS ECS](https://img.shields.io/badge/AWS-ECS-FF9900)
+---
 
-## Features
-
-- Responsive landing page with modern glassmorphism UI
-- `/health` endpoint for ECS load balancer health checks
-- Two Dockerfiles — simple and multistage (distroless)
-
-## Tech Stack
-
-| Component | Technology |
-|-----------|------------|
-| Framework | Flask 3.1.1 |
-| Runtime   | Python 3.14 |
-| Container | Docker (python-slim / distroless) |
-| Deploy    | AWS ECS |
-
-## Project Structure
+## 📌 Architecture
 
 ```
-flask-app-ecs/
-├── app.py                 # Flask app with routes
-├── run.py                 # Entry point (host 0.0.0.0, port 80)
-├── requirements.txt       # Python dependencies
-├── templates/
-│   └── index.html         # Landing page
-├── Dockerfile             # Simple single-stage build
-└── Dockerfile-multi       # Multistage build with distroless
+User → GCP VM (Ubuntu) → Docker Container → Flask App → Browser (Port 80)
 ```
 
-## Quick Start
+---
 
-### Run locally
+## 🧰 Tech Stack
+
+* Python 3.14
+* Flask 3.1
+* Docker (Multi-stage build)
+* GCP Compute Engine (Ubuntu VM)
+
+---
+
+## ⚙️ Step 1: Create GCP VM
+
+1. Go to **Compute Engine → VM Instances**
+2. Click **Create Instance**
+
+### Configuration:
+
+* Name: `flask-app-vm`
+* Region: `us-central1`
+* Machine: `e2-micro`
+* OS: **Ubuntu 22.04**
+* Enable:
+
+  * ✅ Allow HTTP Traffic
+  * ✅ Allow HTTPS Traffic
+
+---
+
+## 📸 VM Instance Created
+
+![VM Instance](./screenshots/vm-instance.png)
+
+---
+
+## 🔐 Step 2: Connect via SSH
+
+Click **SSH** button from GCP console.
+
+---
+
+## 🐳 Step 3: Install Docker
 
 ```bash
-pip install -r requirements.txt
-python run.py
+sudo apt update
+sudo apt install -y docker.io
+
+sudo systemctl start docker
+sudo systemctl enable docker
+
+sudo usermod -aG docker $USER
+newgrp docker
 ```
 
-App runs at **http://localhost:80**.
+---
 
-### Run with Docker
-
-**Simple build:**
+## 📥 Step 4: Clone Repository
 
 ```bash
-docker build -t flask-app .
-docker run -p 80:80 flask-app
+git clone https://github.com/mansibhargav1/dockerise-app.git
+cd dockerise-app
 ```
 
-**Multistage build (smaller, production-grade):**
+---
+
+## 🏗 Step 5: Build Docker Image
 
 ```bash
 docker build -f Dockerfile-multi -t flask-app .
-docker run -p 80:80 flask-app
 ```
 
-## Dockerfiles Explained
+---
 
-### Simple (`Dockerfile`)
+## ▶️ Step 6: Run Container
 
-Single-stage build using `python:3.14-slim`. Straightforward — copies everything, installs dependencies, runs the app. Good for development and learning.
+```bash
+docker run -d -p 80:80 flask-app
+```
 
-### Multistage (`Dockerfile-multi`)
+Check running container:
 
-Two-stage build:
-1. **Builder stage** — installs dependencies into a separate directory using `python:3.14-slim`
-2. **Final stage** — copies only the app and deps into a `distroless` image
+```bash
+docker ps
+```
 
-Benefits:
-- Smaller final image (no pip, no shell, no OS utilities)
-- Reduced attack surface — distroless images contain only the app and its runtime
-- Better layer caching — dependencies are copied before source code
+---
 
-## Endpoints
+## 🌐 Step 7: Access Application
 
-| Route     | Method | Description                     |
-|-----------|--------|---------------------------------|
-| `/`       | GET    | Landing page                    |
-| `/health` | GET    | Health check (returns `Server is up and running`) |
+Open browser:
 
-## Deploy to AWS ECS
+```
+http://<EXTERNAL_IP>
+```
 
-High-level steps to deploy this app on ECS:
+---
 
-1. **Push image to ECR**
-   ```bash
-   aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <account-id>.dkr.ecr.<region>.amazonaws.com
-   docker tag flask-app:latest <account-id>.dkr.ecr.<region>.amazonaws.com/flask-app:latest
-   docker push <account-id>.dkr.ecr.<region>.amazonaws.com/flask-app:latest
-   ```
+## 📸 Application Output
 
-2. **Create ECS Task Definition** — specify the ECR image, port 80, memory/CPU limits
+![App UI](./screenshots/app-ui.png)
+<img width="1427" height="853" alt="image" src="https://github.com/user-attachments/assets/b48e9e66-d5b8-484c-be3a-1e2e97183767" />
 
-3. **Create ECS Service** — attach to a cluster, configure desired count, link to a load balancer
+---
 
-4. **Configure ALB** — target group pointing to port 80, use `/health` as the health check path
+## ⚠️ Troubleshooting
+
+### App not opening?
+
+✔ Check container:
+
+```bash
+docker ps
+```
+
+✔ Check logs:
+
+```bash
+docker logs <container_id>
+```
+
+✔ Check firewall:
+
+* Go to **VPC → Firewall**
+* Allow TCP: `80`
+
+---
+
+## 🚀 Optional: Push to GCP Artifact Registry
+
+### Enable API:
+
+```bash
+gcloud services enable artifactregistry.googleapis.com
+```
+
+### Create repo:
+
+```bash
+gcloud artifacts repositories create flask-repo \
+  --repository-format=docker \
+  --location=us-central1
+```
+
+### Authenticate:
+
+```bash
+gcloud auth configure-docker us-central1-docker.pkg.dev
+```
+
+### Tag & Push:
+
+```bash
+docker tag flask-app us-central1-docker.pkg.dev/<PROJECT_ID>/flask-repo/flask-app:v1
+docker push us-central1-docker.pkg.dev/<PROJECT_ID>/flask-repo/flask-app:v1
+```
+
+---
+
+## 💡 Key Learnings
+
+* Containerized application using Docker (multi-stage build)
+* Deployed app on GCP VM manually
+* Exposed application using public IP
+* Configured Docker runtime on Ubuntu
+* Understood basic cloud networking & firewall rules
+
+---
+
+## 📂 Project Structure
+
+```
+.
+├── app.py
+├── run.py
+├── Dockerfile
+├── Dockerfile-multi
+├── requirements.txt
+└── templates/
+```
+
+---
+
+## 👨‍💻 Author
+
+**Mansi 🚀**
+
+---
