@@ -77,9 +77,37 @@ cd dockerise-app
 
 ## 🏗 Step 5: Build Docker Image
 
+### Option 1: Build locally (basic)
+
 ```bash
 docker build -f Dockerfile-multi -t flask-app .
 ```
+
+---
+
+### Option 2: Build with your own Docker Registry (Recommended 🚀)
+
+Replace `<REGISTRY-IP>` and `<PORT>` with your Docker registry details.
+
+```bash
+docker build -f Dockerfile-multi -t <REGISTRY-IP>:<PORT>/flask-app:latest .
+```
+
+### Example:
+
+```bash
+docker build -f Dockerfile-multi -t 136.112.56.210:5000/flask-app:latest .
+```
+
+---
+
+👉 This will directly tag your image for your private registry, so you can push it easily:
+
+```bash
+docker push <REGISTRY-IP>:<PORT>/flask-app:latest
+```
+<img width="1433" height="538" alt="image" src="https://github.com/user-attachments/assets/dcde0e39-dff1-4844-b925-0a79bcb67d58" />
+
 
 ---
 
